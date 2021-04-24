@@ -1,90 +1,130 @@
 <template>
   <div class="login-wrap">
-    <div class="login-form">
-        <h2>销售登录</h2>
-      <el-input v-model="saleraccount" placeholder="请输入账号" class="login-input"></el-input>
-      <el-input
-        placeholder="请输入密码"
-        v-model="salerpass"
-        show-password
-        class="login-input"
-      ></el-input>
-
-      <el-button
-      @click.prevent="handleLogin(saleraccount, salerpass)"
-      class="login-btn"
-      type="primary"
-      >登录</el-button>
-    </div>
+    <el-form ref="ruleForm"
+             :label-position="labelPosition"
+             :model="ruleForm"
+             :rules="rules"
+             class="login-form"
+             label-width="100px"
+             status-icon>
+      <h2>登录</h2>
+      <el-form-item prop="account">
+        <el-input v-model="ruleForm.account" autocomplete="off" placeholder="请输入账号"></el-input>
+      </el-form-item>
+      <el-form-item label="" prop="password">
+        <el-input v-model="ruleForm.password" autocomplete="off" placeholder="请输入密码" type="password"></el-input>
+      </el-form-item>
+      <el-form-item>
+        <div class="login-btn">
+          <el-button type="primary" @click="submitForm('ruleForm')">登录</el-button>
+          <el-button @click="resetForm('ruleForm')">重置</el-button>
+        </div>
+      </el-form-item>
+    </el-form>
   </div>
 </template>
 
 <script>
 export default {
   data () {
+    var validateAcccount = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('请输入账号'))
+      } else {
+        callback()
+      }
+    }
+    var validatePass = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('请输入密码'))
+      } else {
+        callback()
+      }
+    }
     return {
-      saleraccount: '',
-      salerpass: ''
+      labelPosition: 'top',
+      ruleForm: {
+        account: '',
+        password: ''
+      },
+      rules: {
+        account: [
+          {validator: validateAcccount, trigger: 'blur'}
+        ],
+        password: [
+          {validator: validatePass, trigger: 'blur'}
+        ]
+      }
     }
   },
   methods: {
-    // 登录请求
-
-    handleLogin (salerAccount, salerPass) {
-      this.$http
-        .post('saler/loginSaler', null, {
-          params: {
-            saleraccount: salerAccount,
-            salerpass: salerPass
-          }
-        })
-        .then((res) => {
-          const { data,
-            code,
-            msg
-          } = res.data
-          if (code === '1111') {
-            // 登录失败
-            this.$notify.error({
-              title: '错误',
-              message: '用户名或密码错误'
+    submitForm (formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          // 如果都不为空
+          var salerAccount = this.ruleForm.account
+          var salerPass = this.ruleForm.password
+          // console.log(this.ruleForm)
+          this.$http
+            .post('saler/loginSaler', null, {
+              params: {
+                saleraccount: salerAccount,
+                salerpass: salerPass
+              }
+            }).then((res) => {
+              const {
+                data,
+                code,
+                msg
+              } = res.data
+              if (code === '1111') {
+              // 登录失败
+                this.$notify.error({
+                  title: '错误',
+                  message: msg
+                })
+              } else {
+              // 登录成功
+              // 跳转页面
+                this.$router.push({name: 'home'})
+                // 提示成功
+                this.$notify.success({
+                  title: '成功',
+                  message: '欢迎' + data.salername
+                })
+              }
             })
-          } else {
-            // 登录成功
-            this.$notify.success({
-              title: '成功',
-              message: '用户名或密码错误'
-            })
-          }
-          console.log(res)
-          console.log(data)
-          console.log(code)
-          console.log(msg)
-        })
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    resetForm (formName) {
+      this.$refs[formName].resetFields()
     }
   }
 }
 </script>
 
-<style>
+<style scoped>
 .login-wrap {
   height: 100%;
-  background-color: #324152;
+  background-color: midnightblue;
   /* 弹性布局 */
   display: flex;
   justify-content: center;
   align-items: center;
 }
+
 .login-wrap .login-form {
   width: 400px;
   background-color: aliceblue;
   border-radius: 5px;
   padding: 30px;
 }
-.login-wrap .login-form .login-input{
-    margin-bottom: 20px;
-}
-.login-wrap .login-btn {
-    width: 100%;
+
+.login-wrap .login-form .login-btn {
+  text-align: right;
 }
 </style>
