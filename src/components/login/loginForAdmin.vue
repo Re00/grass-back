@@ -7,7 +7,7 @@
              class="login-form"
              label-width="100px"
              status-icon>
-      <h2>登录</h2>
+      <h2>管理员登录</h2>
       <el-form-item prop="account">
         <el-input v-model="ruleForm.account" autocomplete="off" placeholder="请输入账号"></el-input>
       </el-form-item>
@@ -16,7 +16,7 @@
       </el-form-item>
       <el-form-item>
         <div class="login-btn">
-          <el-button type="primary" @click="submitForm('ruleForm')">登录</el-button>
+          <el-button type="primary" @click="submitForm('ruleForm')" :loading="ruleForm.btnType">登录</el-button>
           <el-button @click="resetForm('ruleForm')">重置</el-button>
         </div>
       </el-form-item>
@@ -25,7 +25,10 @@
 </template>
 
 <script>
+import {mapActions} from 'vuex'
+
 export default {
+
   data () {
     var validateAcccount = (rule, value, callback) => {
       if (value === '') {
@@ -45,7 +48,8 @@ export default {
       labelPosition: 'top',
       ruleForm: {
         account: '',
-        password: ''
+        password: '',
+        btnType: false
       },
       rules: {
         account: [
@@ -58,39 +62,50 @@ export default {
     }
   },
   methods: {
+    ...mapActions(['setAdminToken', 'setAdmin']),
     submitForm (formName) {
       this.$refs[formName].validate((valid) => {
         if (valid) {
           // 如果都不为空
-          var salerAccount = this.ruleForm.account
-          var salerPass = this.ruleForm.password
+          var adminName = this.ruleForm.account
+          var adminPass = this.ruleForm.password
+          this.ruleForm.btnType = true
           // console.log(this.ruleForm)
           this.$http
-            .post('saler/loginSaler', null, {
+            .post('admin/login', null, {
               params: {
-                saleraccount: salerAccount,
-                salerpass: salerPass
+                adminname: adminName,
+                adminpass: adminPass
               }
             }).then((res) => {
+              console.log(res)
               const {
                 data,
                 code,
                 msg
               } = res.data
-              if (code === '1111') {
-              // 登录失败
-                this.$notify.error({
-                  title: '错误',
-                  message: msg
-                })
-              } else {
+              if (code === '0000') {
               // 登录成功
-              // 跳转页面
-                this.$router.push({name: 'home'})
+              // 设置token
+              //  保存到vuex
+                this.setAdminToken(data.token)
+                this.setAdmin(data)
+                // 保存到本地
+                localStorage.setItem('token', data.token)
+                localStorage.setItem('admin', JSON.stringify(data))
+                // 跳转页面
+                this.$router.push({name: 'homeForAdmin'})
                 // 提示成功
                 this.$notify.success({
                   title: '成功',
-                  message: '欢迎' + data.salername
+                  message: '欢迎' + adminName
+                })
+              } else {
+              // 登录失败
+                this.ruleForm.btnType = false
+                this.$notify.error({
+                  title: '错误',
+                  message: msg
                 })
               }
             })
